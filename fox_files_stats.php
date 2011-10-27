@@ -101,6 +101,13 @@ function fox_files_stats($atts) {
                 $stats = round($stats,2);
         }
 
+    if ($format_number == '1') {
+        $localeconv = localeconv();
+        $dec_point = isset($localeconv['decimal_point']) ? $localeconv['decimal_point'] : '.';
+        $thousands_sep = isset($localeconv['thousands_sep']) ? $localeconv['thousands_sep'] : ',';
+        $stats = number_format($stats, $size=='1' ? 2 : 0, $dec_point, $thousands_sep);
+    }
+    
     return $stats;
 }
 # --- END PLUGIN CODE ---
