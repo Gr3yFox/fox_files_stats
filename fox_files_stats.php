@@ -17,7 +17,7 @@ $plugin['name'] = 'fox_files_stats';
 // 1 = Plugin help is in raw HTML.  Not recommended.
 # $plugin['allow_html_help'] = 1;
 
-$plugin['version'] = '0.1';
+$plugin['version'] = '0.2';
 $plugin['author'] = 'Riccardo Traverso';
 $plugin['author_uri'] = 'http://www.riccardotraverso.it';
 $plugin['description'] = 'Print out some statistics about files, like files count, files total size, total downloaded size and total downloaded files.';
@@ -55,47 +55,54 @@ if (!defined('txpinterface'))
 */
 
 function fox_files_stats($atts) {
-	extract(lAtts(array(
-		'downloaded'             =>  '0',
-		'category'               =>  '',
-		'format'                 =>  'M',
-		'size'                   =>  '0'
-	), $atts));
+    extract(lAtts(array(
+        'downloaded'             =>  '0',
+        'category'               =>  '',
+        'format'                 =>  'M',
+        'size'                   =>  '0',
+        'children'               =>  '1'
+    ), $atts));
 
-	if ($size=='1') {
-		if ($downloaded=='0')
-			$things = 'sum(size)';
-		else
-			$things = 'sum(downloads*size)';
-	} else {
-		if ($downloaded=='0')
-			$things = 'count(*)';
-		else
-			$things = 'sum(downloads)';
-	}
-	
-	if ($category!='')
-		$where = 'category=\''.mysql_escape_string($category).'\'';
-	else $where='1';
+    if ($size=='1') {
+        if ($downloaded ==' 0')
+            $things = 'sum(size)';
+        else
+            $things = 'sum(downloads*size)';
+    } else {
+        if ($downloaded == '0')
+            $things = 'count(*)';
+        else
+            $things = 'sum(downloads)';
+    }
+    
+    if ($category!='') {
+        if ($children == '1') {
+            $c = safe_row('lft, rgt', 'txp_category', "`type`='file' AND name='".mysql_escape_string($category)."'");
+            $where = "category IN (SELECT name FROM txp_category WHERE type='file' AND lft >= ". $c['lft'] . " AND rgt <= " . $c['rgt'] . ")";
+        } else {
+            $where = 'category=\''.mysql_escape_string($category).'\'';
+        }
+    } else {
+        $where = '1';
+    }
 
-	$stats = safe_row("$things as s", 'txp_file', $where);
-	$stats = $stats['s'];
+    $stats = safe_row("$things as s", 'txp_file', $where);
+    $stats = $stats['s'];
 
-	if ($size=='1')
-		switch (strtoupper($format)) {
-			case 'G':
-				$stats /= 1024;
-			case 'M':
-				$stats /= 1024;
-			case 'K':
-				$stats /= 1024;
-			default:
-				$stats = round($stats,2);
-		}
+    if ($size=='1')
+        switch (strtoupper($format)) {
+            case 'G':
+                $stats /= 1024;
+            case 'M':
+                $stats /= 1024;
+            case 'K':
+                $stats /= 1024;
+            default:
+                $stats = round($stats,2);
+        }
 
-	return $stats;
+    return $stats;
 }
-
 # --- END PLUGIN CODE ---
 if (0) {
 ?>
@@ -117,6 +124,7 @@ if (0) {
 <h2>arguments</h2>
 <ul>
 <li><strong>category</strong> - optional, the file category you wish to show statistics about (default is empty, which means "all categories")</li>
+<li><strong>children</strong> - optional, enables or disables the inclusion of all sub-categories in the computation (default is "1")</li>
 <li><strong>downloaded</strong> - optional, tells if to count each file's download or not (default is "0")</li>
 <li><strong>format</strong> - optional, specify the format (G for GB, M for MB, K for KB, B for bytes) when size="1" (default is "M")</li>
 <li><strong>size</strong> - optional, turns size counting on and off (default is "0")</li>
